@@ -18,9 +18,11 @@ export async function GET() {
     const response = await fetch(`${API_ENDPOINTS.users}/all`, {
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': 'https://ijg-research-admin.vercel.app'
       },
-      credentials: 'include'
+      credentials: 'include',
+      mode: 'cors'
     })
 
     if (!response.ok) {
