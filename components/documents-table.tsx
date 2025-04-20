@@ -24,125 +24,110 @@ import type { Category } from "@/types/category"
 interface DocumentsTableProps {
   documents: Document[]
   categories: Category[]
+  isLoading?: boolean
 }
 
-export function DocumentsTable({ documents, categories }: DocumentsTableProps) {
-  const [editDocument, setEditDocument] = useState<Document | null>(null)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null)
-
+export function DocumentsTable({ documents, categories, isLoading }: DocumentsTableProps) {
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
 
   const handleDelete = async () => {
-    if (!documentToDelete) return
+    if (!selectedDocument) return
 
     try {
-      await deleteDocument(documentToDelete.id)
-      queryClient.invalidateQueries({ queryKey: ["documents"] })
+      await deleteDocument(selectedDocument.id)
       toast({
-        title: "Document deleted",
-        description: "The document has been deleted successfully.",
+        title: "Success",
+        description: "Document deleted successfully",
       })
+      queryClient.invalidateQueries({ queryKey: ["documents"] })
     } catch (error) {
       toast({
-        variant: "destructive",
         title: "Error",
-        description: "Failed to delete document. Please try again.",
+        description: "Failed to delete document",
+        variant: "destructive",
       })
     } finally {
-      setDeleteDialogOpen(false)
-      setDocumentToDelete(null)
+      setIsDeleteDialogOpen(false)
+      setSelectedDocument(null)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#004c98]"></div>
+      </div>
+    )
+  }
+
+  if (!documents.length) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No documents found</p>
+      </div>
+    )
   }
 
   return (
     <>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Date Posted</TableHead>
-              <TableHead>File Type</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Title</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>File Type</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {documents.map((document) => (
+            <TableRow key={document.id}>
+              <TableCell className="font-medium">{document.title}</TableCell>
+              <TableCell>{document.category.name}</TableCell>
+              <TableCell>{document.fileType}</TableCell>
+              <TableCell>{format(new Date(document.createdAt), "MMM d, yyyy")}</TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem
+                      onClick={() => window.open(getDocumentViewUrl(document.fileUrl), "_blank")}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSelectedDocument(document)
+                        setIsDeleteDialogOpen(true)
+                      }}
+                      className="text-red-600"
+                    >
+                      <Trash className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {documents.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  No documents found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              documents.map((document) => (
-                <TableRow key={document.id}>
-                  <TableCell className="font-medium">{document.title}</TableCell>
-                  <TableCell>{document.category.name}</TableCell>
-                  <TableCell>{format(new Date(document.datePosted), "MMM d, yyyy")}</TableCell>
-                  <TableCell>{document.fileType}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setEditDocument(document)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          <span>Edit</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setDocumentToDelete(document)
-                            setDeleteDialogOpen(true)
-                          }}
-                        >
-                          <Trash className="mr-2 h-4 w-4" />
-                          <span>Delete</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <a
-                            href={document.fileUrl}
-                            download
-                            onClick={(e) => {
-                              e.preventDefault()
-                              window.open(document.fileUrl, '_blank')
-                            }}
-                          >
-                            <Download className="mr-2 h-4 w-4" />
-                            <span>Download</span>
-                          </a>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {editDocument && (
-        <DocumentUploadDialog
-          document={editDocument}
-          categories={categories}
-          open={!!editDocument}
-          onOpenChange={(open) => !open && setEditDocument(null)}
-        />
-      )}
+          ))}
+        </TableBody>
+      </Table>
 
       <ConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
         title="Delete Document"
         description="Are you sure you want to delete this document? This action cannot be undone."
         onConfirm={handleDelete}

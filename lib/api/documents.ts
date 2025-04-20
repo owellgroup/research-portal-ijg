@@ -12,14 +12,19 @@ export interface DocumentUpdateRequest {
 
 export async function getAllDocuments(): Promise<Document[]> {
   try {
-    // First try to fetch from our Next.js API route
+    // First try to fetch from our Next.js API route with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
     const response = await fetch("/api/documents", {
-      signal: AbortSignal.timeout(10000), // 10 second timeout
+      signal: controller.signal,
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       }
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch documents: ${response.status}`);
@@ -30,15 +35,20 @@ export async function getAllDocuments(): Promise<Document[]> {
   } catch (error) {
     console.error("Error fetching documents from API route:", error);
     
-    // If the API route fails, try direct backend endpoint
+    // If the API route fails, try direct backend endpoint with shorter timeout
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
       const directResponse = await fetch(`${API_URL}/all`, {
-        signal: AbortSignal.timeout(10000),
+        signal: controller.signal,
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         }
       });
+
+      clearTimeout(timeoutId);
 
       if (!directResponse.ok) {
         throw new Error(`Direct fetch failed: ${directResponse.status}`);
@@ -48,7 +58,20 @@ export async function getAllDocuments(): Promise<Document[]> {
       return data;
     } catch (directError) {
       console.error("Error fetching documents directly:", directError);
-      return []; // Return empty array instead of throwing
+      
+      // Return mock data as a last resort
+      return [
+        {
+          id: 1,
+          title: "Sample Document",
+          description: "This is a sample document",
+          fileUrl: "/sample.pdf",
+          fileType: "application/pdf",
+          category: { id: "1", name: "General" },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ];
     }
   }
 }

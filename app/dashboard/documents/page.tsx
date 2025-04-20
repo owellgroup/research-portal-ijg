@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Plus, Search, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,7 @@ import { getAllDocuments, getDocumentsByCategory } from "@/lib/api/documents"
 import { Alert, AlertCircle, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const ITEMS_PER_PAGE = 5
+const STALE_TIME = 5 * 60 * 1000 // 5 minutes
 
 export default function DocumentsPage() {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
@@ -25,29 +26,36 @@ export default function DocumentsPage() {
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ["categories"],
     queryFn: getAllCategories,
+    staleTime: STALE_TIME,
   })
 
   const { 
     data: documents = [], 
     isLoading: isLoadingDocuments,
     error: documentsError,
-    refetch: refetchDocuments 
+    refetch: refetchDocuments,
+    isRefetching 
   } = useQuery({
     queryKey: ["documents", selectedCategory],
     queryFn: () => selectedCategory ? getDocumentsByCategory(selectedCategory) : getAllDocuments(),
-    retry: 2, // Retry failed requests twice
-    retryDelay: 1000, // Wait 1 second between retries
+    staleTime: STALE_TIME,
+    retry: 2,
+    retryDelay: 1000,
   })
 
   // Filter documents based on search query
-  const filteredDocuments = documents.filter((doc) => {
-    const searchLower = searchQuery.toLowerCase()
-    return (
-      doc.title.toLowerCase().includes(searchLower) ||
-      doc.category.name.toLowerCase().includes(searchLower) ||
-      doc.fileType.toLowerCase().includes(searchLower)
-    )
-  })
+  const filteredDocuments = useMemo(() => {
+    if (!documents.length) return []
+    
+    return documents.filter((doc) => {
+      const searchLower = searchQuery.toLowerCase()
+      return (
+        doc.title.toLowerCase().includes(searchLower) ||
+        doc.category.name.toLowerCase().includes(searchLower) ||
+        doc.fileType.toLowerCase().includes(searchLower)
+      )
+    })
+  }, [documents, searchQuery])
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredDocuments.length / ITEMS_PER_PAGE)
@@ -88,9 +96,13 @@ export default function DocumentsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-[#004c98]">Documents</h1>
-          <Button onClick={() => refetchDocuments()} className="bg-[#004c98] hover:bg-[#003a75]">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Retry
+          <Button 
+            onClick={() => refetchDocuments()} 
+            className="bg-[#004c98] hover:bg-[#003a75]"
+            disabled={isRefetching}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+            {isRefetching ? 'Retrying...' : 'Retry'}
           </Button>
         </div>
         <Card>
@@ -116,7 +128,11 @@ export default function DocumentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-[#004c98]">Documents</h1>
-        <Button onClick={() => setIsUploadDialogOpen(true)} className="bg-[#004c98] hover:bg-[#003a75]">
+        <Button 
+          onClick={() => setIsUploadDialogOpen(true)} 
+          className="bg-[#004c98] hover:bg-[#003a75]"
+          disabled={isRefetching}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Upload Document
         </Button>
@@ -125,7 +141,9 @@ export default function DocumentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Document Management</CardTitle>
-          <CardDescription>View, upload, update, and delete documents</CardDescription>
+          <CardDescription>
+            {isRefetching ? 'Refreshing documents...' : 'View, upload, update, and delete documents'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
@@ -139,6 +157,7 @@ export default function DocumentsPage() {
                   setCurrentPage(1)
                 }}
                 className="pl-8"
+                disabled={isRefetching}
               />
             </div>
           </div>
@@ -155,7 +174,11 @@ export default function DocumentsPage() {
               <div className="absolute left-0 top-0 h-10 w-8 bg-gradient-to-r from-background to-transparent" />
               <div className="overflow-auto scrollbar-hide">
                 <TabsList className="mb-4 inline-flex w-max border-b px-8">
-                  <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-4 py-2 hover:text-foreground data-[state=active]:border-[#004c98] data-[state=active]:text-[#004c98]">
+                  <TabsTrigger 
+                    value="all" 
+                    className="rounded-none border-b-2 border-transparent px-4 py-2 hover:text-foreground data-[state=active]:border-[#004c98] data-[state=active]:text-[#004c98]"
+                    disabled={isRefetching}
+                  >
                     All Documents
                   </TabsTrigger>
                   {categories.map((category) => (
@@ -163,6 +186,7 @@ export default function DocumentsPage() {
                       key={category.id} 
                       value={category.id}
                       className="rounded-none border-b-2 border-transparent px-4 py-2 hover:text-foreground data-[state=active]:border-[#004c98] data-[state=active]:text-[#004c98]"
+                      disabled={isRefetching}
                     >
                       {category.name}
                     </TabsTrigger>
@@ -171,23 +195,33 @@ export default function DocumentsPage() {
               </div>
             </div>
             <TabsContent value="all">
-              <DocumentsTable documents={paginatedDocuments} categories={categories} />
+              <DocumentsTable 
+                documents={paginatedDocuments} 
+                categories={categories} 
+                isLoading={isRefetching}
+              />
               {totalPages > 1 && (
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
                   onPageChange={handlePageChange}
+                  disabled={isRefetching}
                 />
               )}
             </TabsContent>
             {categories.map((category) => (
               <TabsContent key={category.id} value={category.id}>
-                <DocumentsTable documents={paginatedDocuments} categories={categories} />
+                <DocumentsTable 
+                  documents={paginatedDocuments} 
+                  categories={categories} 
+                  isLoading={isRefetching}
+                />
                 {totalPages > 1 && (
                   <Pagination
                     currentPage={currentPage}
                     totalPages={totalPages}
                     onPageChange={handlePageChange}
+                    disabled={isRefetching}
                   />
                 )}
               </TabsContent>
