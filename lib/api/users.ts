@@ -95,12 +95,14 @@ export async function getAllUsers(): Promise<User[]> {
       },
       credentials: 'include'
     });
+    
 
     if (!response.ok) {
       throw new Error(`Failed to fetch users: ${response.status}`);
     }
 
     const data = await response.json();
+    //
     console.log('Fetched users:', data);
     
     // Transform the data to match your User type if needed
