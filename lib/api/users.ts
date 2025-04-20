@@ -84,28 +84,21 @@ export async function login(email: string, password: string): Promise<LoginRespo
 
 export async function getAllUsers(): Promise<User[]> {
   try {
-    const response = await fetch(`${API_ENDPOINTS.users}`, {
+    const response = await fetch('/api/users/all', {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': 'https://ijg-research-admin.vercel.app',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-      },
-      credentials: 'include'
+        'Content-Type': 'application/json'
+      }
     });
-    
 
     if (!response.ok) {
       throw new Error(`Failed to fetch users: ${response.status}`);
     }
 
     const data = await response.json();
-    //
     console.log('Fetched users:', data);
     
-    // Transform the data to match your User type if needed
     return data.map((user: any) => ({
       id: user.id,
       email: user.email,
