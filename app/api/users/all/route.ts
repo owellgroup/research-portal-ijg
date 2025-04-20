@@ -11,6 +11,7 @@ export async function GET() {
         'Access-Control-Allow-Credentials': 'true'
       },
       credentials: 'include'
+      //
     })
 
     if (!response.ok) {
