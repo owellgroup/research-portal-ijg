@@ -13,8 +13,8 @@ export async function GET() {
       return NextResponse.json(cachedDocuments)
     }
 
-    // Try to fetch all documents directly first
-    const response = await fetch("https://ijgapis.onrender.com/api/documents/all", {
+    // Try to fetch all documents directly from the backend
+    const response = await fetch("https://ijgapis.onrender.com/api/documents", {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'

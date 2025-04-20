@@ -11,7 +11,7 @@ import { DocumentsTable } from "@/components/documents-table"
 import { DocumentUploadDialog } from "@/components/document-upload-dialog"
 import { Pagination } from "@/components/ui/pagination"
 import { getAllCategories } from "@/lib/api/categories"
-import { getAllDocuments, getDocumentsByCategory } from "@/lib/api/documents"
+import { getAllDocuments } from "@/lib/api/documents"
 import { Alert, AlertCircle, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const ITEMS_PER_PAGE = 5
@@ -36,26 +36,32 @@ export default function DocumentsPage() {
     refetch: refetchDocuments,
     isRefetching 
   } = useQuery({
-    queryKey: ["documents", selectedCategory],
-    queryFn: () => selectedCategory ? getDocumentsByCategory(selectedCategory) : getAllDocuments(),
+    queryKey: ["documents"],
+    queryFn: getAllDocuments,
     staleTime: STALE_TIME,
     retry: 2,
     retryDelay: 1000,
   })
 
-  // Filter documents based on search query
+  // Filter documents based on search query and category
   const filteredDocuments = useMemo(() => {
     if (!documents.length) return []
     
-    return documents.filter((doc) => {
-      const searchLower = searchQuery.toLowerCase()
-      return (
-        doc.title.toLowerCase().includes(searchLower) ||
-        doc.category.name.toLowerCase().includes(searchLower) ||
-        doc.fileType.toLowerCase().includes(searchLower)
-      )
-    })
-  }, [documents, searchQuery])
+    return documents
+      .filter((doc) => {
+        if (selectedCategory && doc.category.id !== selectedCategory) {
+          return false
+        }
+        
+        const searchLower = searchQuery.toLowerCase()
+        return (
+          doc.title.toLowerCase().includes(searchLower) ||
+          doc.category.name.toLowerCase().includes(searchLower) ||
+          doc.fileType.toLowerCase().includes(searchLower)
+        )
+      })
+      .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
+  }, [documents, searchQuery, selectedCategory])
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredDocuments.length / ITEMS_PER_PAGE)
