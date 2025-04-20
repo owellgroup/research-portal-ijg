@@ -18,6 +18,7 @@ export async function GET(
       headers: {
         'Accept': 'application/pdf,application/octet-stream,text/*',
       },
+      signal: AbortSignal.timeout(10000) // 10 second timeout
     });
 
     if (!response.ok) {
@@ -54,4 +55,4 @@ export async function OPTIONS(request: NextRequest) {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });
-} 
+}
