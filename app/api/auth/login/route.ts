@@ -76,7 +76,9 @@ export async function POST(request: Request) {
       },
     }, {
       headers: {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': 'https://ijg-research-admin.vercel.app',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       },
     })
   } catch (error) {
