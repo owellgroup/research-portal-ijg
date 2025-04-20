@@ -14,16 +14,33 @@ export async function GET(
     // Construct the backend URL
     const backendUrl = `${API_BASE_URL}/api/documents/${path}`;
     
-    const response = await fetch(backendUrl, {
-      headers: {
-        'Accept': 'application/pdf,application/octet-stream,text/*',
-      },
-      signal: AbortSignal.timeout(10000) // 10 second timeout
-    });
+    // Retry up to 3 times with increasing timeout
+    let response;
+    let retries = 0;
+    const maxRetries = 3;
+    const initialTimeout = 15000; // 15 seconds
+    
+    while (retries < maxRetries) {
+      try {
+        response = await fetch(backendUrl, {
+          headers: {
+            'Accept': 'application/pdf,application/octet-stream,text/*',
+          },
+          signal: AbortSignal.timeout(initialTimeout * (retries + 1))
+        });
+        break;
+      } catch (error) {
+        retries++;
+        if (retries === maxRetries) {
+          throw error;
+        }
+        console.log(`Retry ${retries} for document request`);
+      }
+    }
 
-    if (!response.ok) {
-      console.error('Backend response not OK:', response.status, response.statusText);
-      return new NextResponse('Failed to fetch document', { status: response.status });
+    if (!response || !response.ok) {
+      console.error('Backend response not OK:', response?.status, response?.statusText);
+      return new NextResponse('Failed to fetch document', { status: response?.status || 500 });
     }
 
     const contentType = response.headers.get('content-type') || 'application/octet-stream';
