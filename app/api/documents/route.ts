@@ -7,17 +7,17 @@ export async function GET() {
     // fetch categories first and then documents for each category
     // For simplicity in fixing the immediate issue, we'll use mock data
 
-    const categoriesResponse = await fetch("http://localhost:8181/api/categories")
+    const categoriesResponse = await fetch("https://ijgapis.onrender.com/api/categories")
 
     if (!categoriesResponse.ok) {
       throw new Error("Failed to fetch categories")
     }
 
     const categories = await categoriesResponse.json()
-    let allDocuments = []
+    let allDocuments: any[] = []
 
     for (const category of categories) {
-      const response = await fetch(`http://localhost:8181/api/documents/category/${category.id}`)
+      const response = await fetch(`https://ijgapis.onrender.com/api/documents/category/${category.id}`)
       if (response.ok) {
         const documents = await response.json()
         allDocuments = [...allDocuments, ...documents]
