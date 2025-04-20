@@ -14,33 +14,63 @@ export async function GET(
     // Construct the backend URL
     const backendUrl = `${API_BASE_URL}/api/documents/${path}`;
     
-    // Retry up to 3 times with increasing timeout
+    // Enhanced retry logic with exponential backoff
     let response;
     let retries = 0;
-    const maxRetries = 3;
-    const initialTimeout = 15000; // 15 seconds
+    const maxRetries = 5;
+    const initialTimeout = 5000; // Start with 5 seconds
+    const maxTimeout = 30000; // Max 30 seconds
     
     while (retries < maxRetries) {
       try {
+        const timeout = Math.min(
+          initialTimeout * Math.pow(2, retries),
+          maxTimeout
+        );
+        
         response = await fetch(backendUrl, {
           headers: {
             'Accept': 'application/pdf,application/octet-stream,text/*',
           },
-          signal: AbortSignal.timeout(initialTimeout * (retries + 1))
+          signal: AbortSignal.timeout(timeout)
         });
-        break;
+        
+        if (response.ok) break;
+        
+        // If response not OK but not timeout, throw immediately
+        throw new Error(`Request failed with status ${response.status}`);
       } catch (error) {
         retries++;
         if (retries === maxRetries) {
+          console.error(`Final retry failed after ${maxRetries} attempts`);
           throw error;
         }
-        console.log(`Retry ${retries} for document request`);
+        
+        const waitTime = Math.min(
+          1000 * Math.pow(2, retries),
+          10000 // Max 10 seconds between retries
+        );
+        
+        console.log(`Retry ${retries} failed, waiting ${waitTime}ms before next attempt`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
 
     if (!response || !response.ok) {
       console.error('Backend response not OK:', response?.status, response?.statusText);
-      return new NextResponse('Failed to fetch document', { status: response?.status || 500 });
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Failed to fetch document',
+          message: 'The request timed out after multiple retries',
+          status: response?.status || 504
+        }),
+        {
+          status: response?.status || 504,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
     }
 
     const contentType = response.headers.get('content-type') || 'application/octet-stream';
