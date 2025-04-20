@@ -3,7 +3,15 @@ import { API_ENDPOINTS } from "@/lib/config"
 
 export async function GET() {
   try {
-    const response = await fetch(`${API_ENDPOINTS.users}/all`)
+    const response = await fetch(`${API_ENDPOINTS.users}/all`, {
+      headers: {
+        'Access-Control-Allow-Origin': 'https://ijg-research-admin.vercel.app',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Credentials': 'true'
+      },
+      credentials: 'include'
+    })
 
     if (!response.ok) {
       return NextResponse.json({ error: "Failed to fetch users from backend" }, { status: response.status })
