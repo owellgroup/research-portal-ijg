@@ -88,14 +88,26 @@ export default function DocumentsPage() {
               setCurrentPage(1) // Reset to first page when changing category
             }}
           >
-            <TabsList className="mb-4 flex flex-wrap">
-              <TabsTrigger value="all">All Documents</TabsTrigger>
-              {categories.map((category) => (
-                <TabsTrigger key={category.id} value={category.id}>
-                  {category.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <div className="relative">
+              <div className="absolute right-0 top-0 h-10 w-8 bg-gradient-to-l from-background to-transparent" />
+              <div className="absolute left-0 top-0 h-10 w-8 bg-gradient-to-r from-background to-transparent" />
+              <div className="overflow-auto scrollbar-hide">
+                <TabsList className="mb-4 inline-flex w-max border-b px-8">
+                  <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-4 py-2 hover:text-foreground data-[state=active]:border-[#004c98] data-[state=active]:text-[#004c98]">
+                    All Documents
+                  </TabsTrigger>
+                  {categories.map((category) => (
+                    <TabsTrigger 
+                      key={category.id} 
+                      value={category.id}
+                      className="rounded-none border-b-2 border-transparent px-4 py-2 hover:text-foreground data-[state=active]:border-[#004c98] data-[state=active]:text-[#004c98]"
+                    >
+                      {category.name}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
+            </div>
             <TabsContent value="all">
               <DocumentsTable documents={paginatedDocuments} categories={categories} />
               {totalPages > 1 && (
