@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Plus, Search } from "lucide-react"
+import { Plus, Search, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -12,6 +12,7 @@ import { DocumentUploadDialog } from "@/components/document-upload-dialog"
 import { Pagination } from "@/components/ui/pagination"
 import { getAllCategories } from "@/lib/api/categories"
 import { getAllDocuments, getDocumentsByCategory } from "@/lib/api/documents"
+import { Alert, AlertCircle, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const ITEMS_PER_PAGE = 5
 
@@ -21,14 +22,21 @@ export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
 
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ["categories"],
     queryFn: getAllCategories,
   })
 
-  const { data: documents = [] } = useQuery({
+  const { 
+    data: documents = [], 
+    isLoading: isLoadingDocuments,
+    error: documentsError,
+    refetch: refetchDocuments 
+  } = useQuery({
     queryKey: ["documents", selectedCategory],
     queryFn: () => selectedCategory ? getDocumentsByCategory(selectedCategory) : getAllDocuments(),
+    retry: 2, // Retry failed requests twice
+    retryDelay: 1000, // Wait 1 second between retries
   })
 
   // Filter documents based on search query
@@ -48,6 +56,60 @@ export default function DocumentsPage() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
+  }
+
+  if (isLoadingCategories || isLoadingDocuments) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-[#004c98]">Documents</h1>
+          <Button disabled className="bg-[#004c98] hover:bg-[#003a75]">
+            <Plus className="mr-2 h-4 w-4" />
+            Upload Document
+          </Button>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Document Management</CardTitle>
+            <CardDescription>Loading documents...</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#004c98]"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (documentsError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-[#004c98]">Documents</h1>
+          <Button onClick={() => refetchDocuments()} className="bg-[#004c98] hover:bg-[#003a75]">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Retry
+          </Button>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Document Management</CardTitle>
+            <CardDescription>Failed to load documents</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                Failed to load documents. Please try again later.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -74,7 +136,7 @@ export default function DocumentsPage() {
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value)
-                  setCurrentPage(1) // Reset to first page when searching
+                  setCurrentPage(1)
                 }}
                 className="pl-8"
               />
@@ -85,7 +147,7 @@ export default function DocumentsPage() {
             className="w-full"
             onValueChange={(value) => {
               setSelectedCategory(value === "all" ? null : value)
-              setCurrentPage(1) // Reset to first page when changing category
+              setCurrentPage(1)
             }}
           >
             <div className="relative">

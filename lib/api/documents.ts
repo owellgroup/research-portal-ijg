@@ -12,16 +12,44 @@ export interface DocumentUpdateRequest {
 
 export async function getAllDocuments(): Promise<Document[]> {
   try {
-    const response = await fetch("/api/documents")
+    // First try to fetch from our Next.js API route
+    const response = await fetch("/api/documents", {
+      signal: AbortSignal.timeout(10000), // 10 second timeout
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch documents")
+      throw new Error(`Failed to fetch documents: ${response.status}`);
     }
 
-    return response.json()
+    const data = await response.json();
+    return data;
   } catch (error) {
-    console.error("Error fetching all documents:", error)
-    return []
+    console.error("Error fetching documents from API route:", error);
+    
+    // If the API route fails, try direct backend endpoint
+    try {
+      const directResponse = await fetch(`${API_URL}/all`, {
+        signal: AbortSignal.timeout(10000),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!directResponse.ok) {
+        throw new Error(`Direct fetch failed: ${directResponse.status}`);
+      }
+
+      const data = await directResponse.json();
+      return data;
+    } catch (directError) {
+      console.error("Error fetching documents directly:", directError);
+      return []; // Return empty array instead of throwing
+    }
   }
 }
 
