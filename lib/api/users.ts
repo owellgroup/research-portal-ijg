@@ -89,8 +89,11 @@ export async function getAllUsers(): Promise<User[]> {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': 'https://ijg-research-admin.vercel.app'
-      }
+        'Access-Control-Allow-Origin': 'https://ijg-research-admin.vercel.app',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      },
+      credentials: 'include'
     });
 
     if (!response.ok) {
