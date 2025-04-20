@@ -42,7 +42,8 @@ export async function login(email: string, password: string): Promise<LoginRespo
       method: "POST",
       headers: {
         "Accept": "application/json",
-        "Content-Type": "application/x-www-form-urlencoded"
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Access-Control-Allow-Origin": "https://ijg-research-admin.vercel.app"
       },
       body: formData
     });
@@ -87,7 +88,8 @@ export async function getAllUsers(): Promise<User[]> {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': 'https://ijg-research-admin.vercel.app'
       }
     });
 
