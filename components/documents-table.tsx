@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DocumentUploadDialog } from "@/components/document-upload-dialog"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { deleteDocument } from "@/lib/api/documents"
+import { deleteDocument, downloadDocument } from "@/lib/api/documents"
 import type { Document } from "@/types/document"
 import type { Category } from "@/types/category"
 
@@ -53,6 +53,22 @@ export function DocumentsTable({ documents, categories, isLoading }: DocumentsTa
     } finally {
       setIsDeleteDialogOpen(false)
       setSelectedDocument(null)
+    }
+  }
+
+  const handleDownload = async (document: Document) => {
+    try {
+      await downloadDocument(document.id, document.title)
+      toast({
+        title: "Success",
+        description: "Document download started",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download document",
+        variant: "destructive",
+      })
     }
   }
 
@@ -102,7 +118,7 @@ export function DocumentsTable({ documents, categories, isLoading }: DocumentsTa
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                     <DropdownMenuItem
-                      onClick={() => window.open(getDocumentViewUrl(document.fileUrl), "_blank")}
+                      onClick={() => handleDownload(document)}
                     >
                       <Download className="mr-2 h-4 w-4" />
                       Download
