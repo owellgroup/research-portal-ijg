@@ -247,8 +247,7 @@ export default function DocumentsPage() {
 
       <DocumentUploadDialog 
         open={isUploadDialogOpen} 
-        onOpenChange={setIsUploadDialogOpen} 
-        categories={categories}
+        onOpenChange={setIsUploadDialogOpen}
       />
     </div>
   )

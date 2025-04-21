@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,20 +11,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
 import { uploadDocument, updateDocument } from "@/lib/api/documents"
+import { getAllCategories } from "@/lib/api/categories"
 import type { Category } from "@/types/category"
 import type { Document } from "@/types/document"
 
 interface DocumentUploadDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  categories: Category[]
   document?: Document // The document to edit
 }
 
 export function DocumentUploadDialog({ 
   open, 
   onOpenChange, 
-  categories = [], 
   document 
 }: DocumentUploadDialogProps) {
   const [title, setTitle] = useState("")
@@ -36,6 +35,11 @@ export function DocumentUploadDialog({
 
   const queryClient = useQueryClient()
   const { toast } = useToast()
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: getAllCategories,
+  })
 
   // Reset form when dialog opens/closes or document changes
   useEffect(() => {
