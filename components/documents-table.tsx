@@ -31,6 +31,7 @@ export function DocumentsTable({ documents, categories, isLoading }: DocumentsTa
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
 
   const handleDelete = async () => {
@@ -106,6 +107,15 @@ export function DocumentsTable({ documents, categories, isLoading }: DocumentsTa
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSelectedDocument(document)
+                        setIsEditDialogOpen(true)
+                      }}
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => {
@@ -132,6 +142,14 @@ export function DocumentsTable({ documents, categories, isLoading }: DocumentsTa
         description="Are you sure you want to delete this document? This action cannot be undone."
         onConfirm={handleDelete}
       />
+
+      {selectedDocument && (
+        <DocumentUploadDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          document={selectedDocument}
+        />
+      )}
     </>
   )
 }
