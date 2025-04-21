@@ -7,3 +7,5 @@ export const API_ENDPOINTS = {
   documents: `${API_BASE_URL}${process.env.NEXT_PUBLIC_API_ENDPOINT_DOCUMENTS || '/api/documents'}`,
   login: `${API_BASE_URL}${process.env.NEXT_PUBLIC_API_ENDPOINT_LOGIN || '/api/users/login'}`,
 };
+
+//

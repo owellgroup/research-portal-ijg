@@ -2,10 +2,8 @@ import { NextResponse } from "next/server"
 import { mockDocuments } from "../mock-data"
 
 const CACHE_DURATION = 60 * 5 // 5 minutes in seconds
-const FETCH_TIMEOUT = 10000 // 10 seconds timeout
 let cachedDocuments: any[] | null = null
 let lastFetchTime = 0
-let isFetching = false
 
 export async function GET() {
   try {
@@ -15,67 +13,50 @@ export async function GET() {
       return NextResponse.json(cachedDocuments)
     }
 
-    // Prevent concurrent fetches
-    if (isFetching) {
-      return cachedDocuments 
-        ? NextResponse.json(cachedDocuments)
-        : NextResponse.json(mockDocuments)
-    }
-
-    isFetching = true
-    
-    // Try to fetch all documents directly from the backend with timeout
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT)
-    
+    // Try to fetch all documents directly from the backend
     const response = await fetch("https://ijgapis.onrender.com/api/documents", {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
-      },
-      signal: controller.signal
-    }).finally(() => clearTimeout(timeoutId))
+      }
+    })
 
     if (response.ok) {
       const documents = await response.json()
-      // Cache the successful response with validation
-      if (Array.isArray(documents)) {
-        cachedDocuments = documents
-        lastFetchTime = now
-      }
-      isFetching = false
-      return NextResponse.json(documents)
+      
+      // Validate and transform document dates
+      const validDocuments = documents.map((doc: any) => ({
+        ...doc,
+        datePosted: doc.datePosted || new Date().toISOString(),
+        createdAt: doc.createdAt || new Date().toISOString()
+      }))
+
+      // Cache the successful response
+      cachedDocuments = validDocuments
+      lastFetchTime = now
+      return NextResponse.json(validDocuments)
     }
 
-    // If direct fetch fails, try fetching by categories with timeout
-    const categoriesController = new AbortController()
-    const categoriesTimeout = setTimeout(() => categoriesController.abort(), FETCH_TIMEOUT)
-    
-    const categoriesResponse = await fetch("https://ijgapis.onrender.com/api/categories", {
-      signal: categoriesController.signal
-    }).finally(() => clearTimeout(categoriesTimeout))
-    
+    // If direct fetch fails, try fetching by categories
+    const categoriesResponse = await fetch("https://ijgapis.onrender.com/api/categories")
     if (!categoriesResponse.ok) {
-      isFetching = false
       throw new Error("Failed to fetch categories")
     }
 
     const categories = await categoriesResponse.json()
     const allDocuments: any[] = []
 
-    // Fetch documents for each category in parallel with timeout
+    // Fetch documents for each category in parallel
     const documentPromises = categories.map(async (category: any) => {
       try {
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT)
-        
-        const response = await fetch(`https://ijgapis.onrender.com/api/documents/category/${category.id}`, {
-          signal: controller.signal
-        }).finally(() => clearTimeout(timeout))
-        
+        const response = await fetch(`https://ijgapis.onrender.com/api/documents/category/${category.id}`)
         if (response.ok) {
           const documents = await response.json()
-          return Array.isArray(documents) ? documents : []
+          return documents.map((doc: any) => ({
+            ...doc,
+            datePosted: doc.datePosted || new Date().toISOString(),
+            createdAt: doc.createdAt || new Date().toISOString()
+          }))
         }
         return []
       } catch (error) {
@@ -87,13 +68,10 @@ export async function GET() {
     const results = await Promise.all(documentPromises)
     const documents = results.flat()
 
-    // Cache the successful response with validation
-    if (Array.isArray(documents)) {
-      cachedDocuments = documents
-      lastFetchTime = now
-    }
-    isFetching = false
-    
+    // Cache the successful response
+    cachedDocuments = documents
+    lastFetchTime = now
+
     return NextResponse.json(documents)
   } catch (error) {
     console.error("Error fetching documents:", error)
@@ -104,6 +82,10 @@ export async function GET() {
     }
 
     // Return mock data as a last resort
-    return NextResponse.json(mockDocuments)
+    return NextResponse.json(mockDocuments.map(doc => ({
+      ...doc,
+      datePosted: doc.datePosted || new Date().toISOString(),
+      createdAt: doc.createdAt || new Date().toISOString()
+    })))
   }
 }

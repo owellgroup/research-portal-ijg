@@ -23,12 +23,6 @@ export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
 
-  const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
-    queryKey: ["categories"],
-    queryFn: getAllCategories,
-    staleTime: STALE_TIME,
-  })
-
   const { 
     data: documents = [], 
     isLoading: isLoadingDocuments,
@@ -42,6 +36,17 @@ export default function DocumentsPage() {
     retry: 2,
     retryDelay: 1000,
   })
+
+  // Extract unique categories from documents
+  const categories = useMemo(() => {
+    const categoryMap = new Map()
+    documents.forEach(doc => {
+      if (doc.category && !categoryMap.has(doc.category.id)) {
+        categoryMap.set(doc.category.id, doc.category)
+      }
+    })
+    return Array.from(categoryMap.values())
+  }, [documents])
 
   // Filter documents based on search query and category
   const filteredDocuments = useMemo(() => {
@@ -60,7 +65,11 @@ export default function DocumentsPage() {
           doc.fileType.toLowerCase().includes(searchLower)
         )
       })
-      .sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
+      .sort((a, b) => {
+        const dateA = new Date(a.datePosted || a.createdAt || new Date())
+        const dateB = new Date(b.datePosted || b.createdAt || new Date())
+        return dateB.getTime() - dateA.getTime()
+      })
   }, [documents, searchQuery, selectedCategory])
 
   // Calculate pagination
@@ -72,7 +81,7 @@ export default function DocumentsPage() {
     setCurrentPage(page)
   }
 
-  if (isLoadingCategories || isLoadingDocuments) {
+  if (isLoadingDocuments) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
