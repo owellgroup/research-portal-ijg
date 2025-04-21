@@ -35,6 +35,8 @@ export default function DocumentsPage() {
     staleTime: STALE_TIME,
     retry: 2,
     retryDelay: 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 
   // Extract unique categories from documents

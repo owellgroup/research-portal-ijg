@@ -87,8 +87,10 @@ export function DocumentUploadDialog({
         })
       }
 
-      // Refresh the documents list
-      queryClient.invalidateQueries({ queryKey: ["documents"] })
+      // Invalidate and refetch the documents query
+      await queryClient.invalidateQueries({ queryKey: ["documents"] })
+      await queryClient.refetchQueries({ queryKey: ["documents"] })
+      
       onOpenChange(false)
     } catch (error) {
       console.error("Error submitting document:", error)
